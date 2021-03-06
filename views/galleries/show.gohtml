@@ -1,0 +1,26 @@
+{{define "yield"}}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <h1>{{.Title}}</h1>
+                <hr>
+            </div>
+        </div>
+        <div class="row">
+            {{range .ImagesSplitN 3}}
+                <div class="col-md-6 offset-md-3">
+                    {{range .}}
+                        <a href="{{.Path}}">
+                            <img class="thumbnail" src="{{.Path}}" alt="">
+                        </a>
+                    {{end}}
+                </div>
+            {{end}}
+        </div>
+    </div>
+    <style>
+        .thumbnail {
+            width: 100%
+        }
+    </style>
+{{end}}

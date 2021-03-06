@@ -1,0 +1,67 @@
+{{define "yield"}}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        {{template "editGalleryForm" .}}
+                        {{template "deleteGalleryForm" .}}
+                        {{template "imageUploadForm" .}}
+                        {{template "galleryImages" .}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{{end}}
+
+{{define "editGalleryForm"}}
+    <form action="/galleries/{{.ID}}/update" method="POST">
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" id="title" aria-describedby="Gallery title"
+                   value="{{.Title}}">
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+{{end}}
+
+{{define "deleteGalleryForm"}}
+    <form action="/galleries/{{.ID}}/delete" method="POST">
+        <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+{{end}}
+
+{{define "imageUploadForm"}}
+    <form action="/galleries/{{.ID}}/images" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="images">Upload images</label>
+            <input type="file" class="form-control-file" id="images" name="images" multiple="multiple">
+        </div>
+        <button type="submit" class="btn btn-default">Upload</button>
+    </form>
+{{end}}
+
+{{define "galleryImages"}}
+    {{range .ImagesSplitN 6}}
+        <div class="col-md-6 offset-md-3">
+            {{range .}}
+                <a href="{{.Path}}">
+                    <img class="thumbnail" src="{{.Path}}" alt="">
+                </a>
+                {{template "deleteImageForm" .}}
+            {{end}}
+        </div>
+    {{end}}
+    <style>
+        .thumbnail {
+            width: 100%
+        }
+    </style>
+{{end}}
+
+{{define "deleteImageForm"}}
+    <form action="/galleries/{{.GalleryID}}/images/{{.Filename}}/delete" method="POST">
+        <button type="submit" class="btn btn-info">Delete</button>
+    </form>
+{{end}}
