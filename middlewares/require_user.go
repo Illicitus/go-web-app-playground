@@ -15,7 +15,7 @@ func (mw *RequireUser) Apply(next http.Handler) http.HandlerFunc {
 }
 
 func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("remember_token")
 
 		if err != nil {
@@ -32,5 +32,5 @@ func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 		ctx = context.WithUser(ctx, user)
 		r = r.WithContext(ctx)
 		next(w, r)
-	})
+	}
 }
