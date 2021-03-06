@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"go_playground/controllers"
@@ -47,7 +48,14 @@ func main() {
 	galleriesC := controllers.NewGalleries(services.GalleryService, services.ImageService, r)
 
 	// Middlewares
-	requireUserMw := middlewares.RequireUser{UserService: services.UserService}
+	isProd := false
+	b, err := utils.Bytes(32)
+	utils.Must(err)
+	csrfMw := csrf.Protect(b, csrf.Secure(isProd))
+	userMw := middlewares.User{
+		UserService: services.UserService,
+	}
+	requireUserMw := middlewares.RequireUser{User: userMw}
 
 	// Routes
 	r.Handle("/", staticC.Home).Methods("GET")
@@ -75,7 +83,7 @@ func main() {
 
 	fmt.Println("Started on :3000...")
 
-	if err := http.ListenAndServe(":3000", r); err != nil {
+	if err := http.ListenAndServe(":3000", csrfMw(userMw.Apply(r))); err != nil {
 		panic(err)
 	}
 }
