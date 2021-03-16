@@ -9,11 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	userPwPepper  = "secret-random-string"
-	hmacSecretKey = "secret-hmac-key"
-)
-
 var (
 	emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`)
 )
@@ -46,18 +41,22 @@ type UserService interface {
 	UserDB
 }
 
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(db *gorm.DB, pepper, hmacKey string) UserService {
 	ug := &userGorm{db}
-	hmac := utils.NewHMAC(hmacSecretKey)
-	uv := newUserValidator(ug, hmac)
+	hmac := utils.NewHMAC(hmacKey)
+	uv := newUserValidator(ug, hmac, pepper)
 
-	return &userService{UserDB: uv}
+	return &userService{
+		UserDB: uv,
+		pepper: pepper,
+	}
 }
 
 var _ UserService = &userService{}
 
 type userService struct {
 	UserDB
+	pepper string
 }
 
 func (us *userService) Authenticate(email, password string) (*User, error) {
@@ -66,7 +65,7 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 		return nil, err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), []byte(password+userPwPepper))
+	err = bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), []byte(password+us.pepper))
 	if err != nil {
 		switch err {
 		case bcrypt.ErrMismatchedHashAndPassword:
@@ -139,13 +138,15 @@ type userValidator struct {
 	UserDB
 	hmac       utils.HMAC
 	emailRegex *regexp.Regexp
+	pepper     string
 }
 
-func newUserValidator(udb UserDB, hmac utils.HMAC) *userValidator {
+func newUserValidator(udb UserDB, hmac utils.HMAC, pepper string) *userValidator {
 	return &userValidator{
 		UserDB:     udb,
 		hmac:       hmac,
 		emailRegex: emailRegex,
+		pepper:     pepper,
 	}
 }
 
@@ -280,7 +281,7 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 		return nil
 	}
 
-	pwBytes := []byte(user.Password + userPwPepper)
+	pwBytes := []byte(user.Password + uv.pepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(pwBytes), bcrypt.DefaultCost)
 	if err != nil {
 		return err

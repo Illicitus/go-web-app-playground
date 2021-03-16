@@ -1,6 +1,7 @@
 package views
 
 import (
+	"go_playground/models"
 	"go_playground/utils"
 	"log"
 )
@@ -22,6 +23,7 @@ type Alert struct {
 type Data struct {
 	Alert *Alert
 	Yield interface{}
+	User  *models.User
 }
 
 func (d *Data) SetAlert(err error) {

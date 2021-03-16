@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/gorilla/csrf"
+	"go_playground/context"
 	"html/template"
 	"io"
 	"log"
@@ -56,6 +57,8 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 		}
 	}
 
+	var vd Data
+	vd.User = context.User(r.Context())
 	var buf bytes.Buffer
 	csrfField := csrf.TemplateField(r)
 	tpl := v.Template.Funcs(template.FuncMap{

@@ -12,23 +12,20 @@ import (
 	"net/http"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "user"
-	password = "password"
-	dbname   = "go_playground"
-)
-
 func main() {
+	// Config
+	cfg := LoadConfig()
 
 	// DB
-	psqlInfo := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname,
-	)
+	dbCfg := cfg.Database
 
-	services, err := models.NewServices(psqlInfo)
+	services, err := models.NewServices(
+		models.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
+		models.WithLogMode(!cfg.IsProd()),
+		models.WithUser(cfg.Pepper, cfg.HMACKey),
+		models.WithGallery(),
+		models.WithImage(),
+	)
 	utils.Must(err)
 
 	defer func(s *models.Services) {
@@ -48,10 +45,9 @@ func main() {
 	galleriesC := controllers.NewGalleries(services.GalleryService, services.ImageService, r)
 
 	// Middlewares
-	isProd := false
 	b, err := utils.Bytes(32)
 	utils.Must(err)
-	csrfMw := csrf.Protect(b, csrf.Secure(isProd))
+	csrfMw := csrf.Protect(b, csrf.Secure(cfg.IsProd()))
 	userMw := middlewares.User{
 		UserService: services.UserService,
 	}
@@ -64,6 +60,7 @@ func main() {
 	r.HandleFunc("/signup", usersC.Create).Methods("POST")
 	r.Handle("/login", usersC.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersC.Login).Methods("POST")
+	r.HandleFunc("/logout", requireUserMw.ApplyFn(usersC.Login)).Methods("POST")
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
 	r.Handle("/galleries", requireUserMw.ApplyFn(galleriesC.Index)).Methods("GET")
@@ -81,9 +78,8 @@ func main() {
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", assetHandler))
 
-	fmt.Println("Started on :3000...")
-
-	if err := http.ListenAndServe(":3000", csrfMw(userMw.Apply(r))); err != nil {
+	fmt.Printf("Started on:%d...\n", cfg.Port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), csrfMw(userMw.Apply(r))); err != nil {
 		panic(err)
 	}
 }

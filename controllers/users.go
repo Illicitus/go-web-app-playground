@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"fmt"
+	"go_playground/context"
 	"go_playground/models"
 	"go_playground/utils"
 	"go_playground/views"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Users struct {
@@ -127,6 +129,22 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
+}
+
+func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie := http.Cookie{
+		Name:     "remember_token",
+		Value:    "",
+		Expires:  time.Now(),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+
+	user := context.User(r.Context())
+	token, _ := utils.RememberToken()
+	user.Remember = token
+	u.us.Update(user)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
