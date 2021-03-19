@@ -1,3 +1,3 @@
 ## Short description
 
-Web app playground based gorilla mux web toolkit.
+Web app playground based on gorilla mux web toolkit.
